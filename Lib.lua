@@ -1,6 +1,7 @@
 local UILibrary = {}
 UILibrary.__index = UILibrary
 
+-- Utility functions
 local function addUICorner(parent, radius)
     local uiCorner = Instance.new("UICorner")
     uiCorner.CornerRadius = UDim.new(0, radius)
@@ -57,6 +58,7 @@ local function makeDraggable(frame, handle)
     end)
 end
 
+-- Main Window
 function UILibrary:NewWindow(title)
     local screenGui = Instance.new("ScreenGui")
     screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
@@ -134,6 +136,7 @@ function UILibrary:NewWindow(title)
     return sectionContainer
 end
 
+-- Dropdown Functionality
 function UILibrary:CreateDropdown(section, dropdownName, options, callback)
     local dropdown = Instance.new("Frame")
     dropdown.Size = UDim2.new(1, 0, 0, 40)
@@ -222,6 +225,92 @@ function UILibrary:CreateDropdown(section, dropdownName, options, callback)
         else
             dropdownContainer:TweenSize(UDim2.new(1, 0, 0, 0), "Out", "Quad", 0.3, true)
             dropdownArrow.Text = "▼"
+        end
+    end)
+end
+
+-- Toggle Functionality
+function UILibrary:CreateToggle(section, toggleName, defaultValue, callback)
+    local toggle = Instance.new("Frame")
+    toggle.Size = UDim2.new(1, 0, 0, 40)
+    toggle.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    toggle.Parent = section
+    addUICorner(toggle, 8)
+
+    local toggleButton = Instance.new("TextButton")
+    toggleButton.Size = UDim2.new(0, 50, 1, 0)
+    toggleButton.Position = UDim2.new(1, -55, 0, 5)
+    toggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    toggleButton.Text = ""
+    toggleButton.Parent = toggle
+    addUICorner(toggleButton, 10)
+
+    local toggleLabel = Instance.new("TextLabel")
+    toggleLabel.Size = UDim2.new(1, -60, 1, 0)
+    toggleLabel.Text = toggleName
+    toggleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggleLabel.TextSize = 16
+    toggleLabel.Font = Enum.Font.Gotham
+    toggleLabel.BackgroundTransparency = 1
+    toggleLabel.Parent = toggle
+
+    toggleButton.MouseButton1Click:Connect(function()
+        defaultValue = not defaultValue
+        toggleButton.BackgroundColor3 = defaultValue and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+        callback(defaultValue)
+    end)
+end
+
+-- Slider Functionality
+function UILibrary:CreateSlider(section, sliderName, minValue, maxValue, defaultValue, callback)
+    local slider = Instance.new("Frame")
+    slider.Size = UDim2.new(1, 0, 0, 50)
+    slider.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    slider.Parent = section
+    addUICorner(slider, 8)
+
+    local sliderLabel = Instance.new("TextLabel")
+    sliderLabel.Size = UDim2.new(1, 0, 0, 20)
+    sliderLabel.Text = sliderName
+    sliderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    sliderLabel.TextSize = 16
+    sliderLabel.Font = Enum.Font.Gotham
+    sliderLabel.BackgroundTransparency = 1
+    sliderLabel.Parent = slider
+
+    local sliderBar = Instance.new("Frame")
+    sliderBar.Size = UDim2.new(1, -20, 0, 10)
+    sliderBar.Position = UDim2.new(0, 10, 0, 25)
+    sliderBar.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    sliderBar.Parent = slider
+    addUICorner(sliderBar, 5)
+
+    local sliderButton = Instance.new("Frame")
+    sliderButton.Size = UDim2.new(0, 20, 1, 0)
+    sliderButton.Position = UDim2.new(0, (defaultValue - minValue) / (maxValue - minValue) * (sliderBar.Size.X.Offset - 20), 0, 0)
+    sliderButton.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
+    sliderButton.Parent = sliderBar
+    addUICorner(sliderButton, 5)
+
+    sliderButton.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            local function moveSlider(input)
+                local newX = math.clamp(input.Position.X - sliderBar.AbsolutePosition.X, 0, sliderBar.Size.X.Offset - sliderButton.Size.X.Offset)
+                sliderButton.Position = UDim2.new(0, newX, 0, 0)
+                local value = math.floor(minValue + (newX / (sliderBar.Size.X.Offset - sliderButton.Size.X.Offset)) * (maxValue - minValue))
+                callback(value)
+            end
+
+            local connection
+            connection = game:GetService("UserInputService").InputChanged:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseMovement then
+                    moveSlider(input)
+                end
+            end)
+
+            input.Ended:Connect(function()
+                connection:Disconnect()
+            end)
         end
     end)
 end
