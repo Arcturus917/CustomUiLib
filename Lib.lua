@@ -1,6 +1,8 @@
+-- UILibrary Module
 local UILibrary = {}
 UILibrary.__index = UILibrary
 
+-- Helper function to add UI corner radius
 local function addUICorner(parent, radius)
     local uiCorner = Instance.new("UICorner")
     uiCorner.CornerRadius = UDim.new(0, radius)
@@ -8,6 +10,7 @@ local function addUICorner(parent, radius)
     return uiCorner
 end
 
+-- Helper function to add UI stroke
 local function addUIStroke(parent, color, thickness)
     local uiStroke = Instance.new("UIStroke")
     uiStroke.Color = color
@@ -16,6 +19,7 @@ local function addUIStroke(parent, color, thickness)
     return uiStroke
 end
 
+-- Function to make a UI draggable
 local function makeDraggable(frame, handle)
     handle = handle or frame
     local dragging, dragInput, startPos, dragStart
@@ -57,6 +61,7 @@ local function makeDraggable(frame, handle)
     end)
 end
 
+-- Function to create a new window
 function UILibrary:NewWindow(title)
     local screenGui = Instance.new("ScreenGui")
     screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
@@ -109,7 +114,8 @@ function UILibrary:NewWindow(title)
     return sectionContainer
 end
 
-function UILibrary:CreateDropdown(section, dropdownName, options, callback)
+-- Function to create a dropdown
+function UILibrary:CreateDropdown(section, dropdownName, options, defaultOption, callback)
     local dropdown = Instance.new("Frame")
     dropdown.Size = UDim2.new(1, 0, 0, 40)
     dropdown.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
@@ -197,6 +203,126 @@ function UILibrary:CreateDropdown(section, dropdownName, options, callback)
         else
             dropdownContainer:TweenSize(UDim2.new(1, 0, 0, 0), "Out", "Quad", 0.3, true)
             dropdownArrow.Text = "▼"
+        end
+    end)
+end
+
+-- Function to create a button
+function UILibrary:CreateButton(section, buttonName, callback)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, 0, 0, 40)
+    button.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    button.Text = buttonName
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.TextSize = 16
+    button.Font = Enum.Font.Gotham
+    button.Parent = section
+    addUICorner(button, 8)
+
+    button.MouseButton1Click:Connect(function()
+        callback()
+    end)
+end
+
+-- Function to create a toggle
+function UILibrary:CreateToggle(section, toggleName, defaultState, callback)
+    local toggle = Instance.new("Frame")
+    toggle.Size = UDim2.new(1, 0, 0, 40)
+    toggle.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    toggle.Parent = section
+    addUICorner(toggle, 8)
+
+    local toggleButton = Instance.new("TextButton")
+    toggleButton.Size = UDim2.new(1, 0, 1, 0)
+    toggleButton.BackgroundTransparency = 1
+    toggleButton.Text = toggleName
+    toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggleButton.TextSize = 16
+    toggleButton.Font = Enum.Font.Gotham
+    toggleButton.Parent = toggle
+
+    local toggleSwitch = Instance.new("Frame")
+    toggleSwitch.Size = UDim2.new(0, 50, 0, 25)
+    toggleSwitch.Position = UDim2.new(1, -60, 0.5, -12)
+    toggleSwitch.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    toggleSwitch.Parent = toggle
+    addUICorner(toggleSwitch, 12)
+
+    local toggleCircle = Instance.new("Frame")
+    toggleCircle.Size = UDim2.new(0, 20, 0, 20)
+    toggleCircle.Position = UDim2.new(0, 2, 0, 2)
+    toggleCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    toggleCircle.Parent = toggleSwitch
+    addUICorner(toggleCircle, 10)
+
+    if defaultState then
+        toggleCircle.Position = UDim2.new(1, -22, 0, 2)
+        toggleSwitch.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+    end
+
+    toggleButton.MouseButton1Click:Connect(function()
+        defaultState = not defaultState
+        if defaultState then
+            toggleCircle.Position = UDim2.new(1, -22, 0, 2)
+            toggleSwitch.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+        else
+            toggleCircle.Position = UDim2.new(0, 2, 0, 2)
+            toggleSwitch.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+        end
+        callback(defaultState)
+    end)
+end
+
+-- Function to create a slider
+function UILibrary:CreateSlider(section, sliderName, minValue, maxValue, defaultValue, callback)
+    local slider = Instance.new("Frame")
+    slider.Size = UDim2.new(1, 0, 0, 50)
+    slider.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    slider.Parent = section
+    addUICorner(slider, 8)
+
+    local sliderLabel = Instance.new("TextLabel")
+    sliderLabel.Size = UDim2.new(1, 0, 0, 20)
+    sliderLabel.BackgroundTransparency = 1
+    sliderLabel.Text = sliderName
+    sliderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    sliderLabel.TextSize = 16
+    sliderLabel.Font = Enum.Font.Gotham
+    sliderLabel.Parent = slider
+
+    local sliderBar = Instance.new("Frame")
+    sliderBar.Size = UDim2.new(1, -40, 0, 5)
+    sliderBar.Position = UDim2.new(0, 20, 0, 30)
+    sliderBar.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    sliderBar.Parent = slider
+    addUICorner(sliderBar, 2)
+
+    local sliderThumb = Instance.new("Frame")
+    sliderThumb.Size = UDim2.new(0, 10, 0, 20)
+    sliderThumb.Position = UDim2.new(0, (defaultValue - minValue) / (maxValue - minValue) * (sliderBar.Size.X.Offset - 10), 0, -7)
+    sliderThumb.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    sliderThumb.Parent = sliderBar
+    addUICorner(sliderThumb, 5)
+
+    local dragging = false
+    sliderThumb.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+        end
+    end)
+
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if dragging then
+            local newPos = math.clamp(input.Position.X - sliderBar.AbsolutePosition.X, 0, sliderBar.Size.X.Offset - 10)
+            sliderThumb.Position = UDim2.new(0, newPos, 0, -7)
+            local value = math.floor(minValue + (newPos / (sliderBar.Size.X.Offset - 10)) * (maxValue - minValue))
+            callback(value)
+        end
+    end)
+
+    game:GetService("UserInputService").InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
         end
     end)
 end
