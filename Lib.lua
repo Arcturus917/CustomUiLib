@@ -115,7 +115,7 @@ function UILibrary:NewWindow(title)
     local toggleButton = Instance.new("TextButton")
     toggleButton.Size = UDim2.new(0, 50, 0, 50)
     toggleButton.Position = UDim2.new(0.5, -25, 0.5, -150)
-    toggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    toggleButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     toggleButton.Text = "+"
     toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
     toggleButton.TextSize = 24
