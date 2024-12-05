@@ -1,115 +1,203 @@
 local UILibrary = {}
+UILibrary.__index = UILibrary
 
--- Helper: Add UICorner
 local function addUICorner(parent, radius)
     local uiCorner = Instance.new("UICorner")
     uiCorner.CornerRadius = UDim.new(0, radius)
     uiCorner.Parent = parent
+    return uiCorner
 end
 
--- Helper: Make frame draggable
+local function addUIStroke(parent, color, thickness)
+    local uiStroke = Instance.new("UIStroke")
+    uiStroke.Color = color
+    uiStroke.Thickness = thickness
+    uiStroke.Parent = parent
+    return uiStroke
+end
+
 local function makeDraggable(frame, handle)
-    local UIS = game:GetService("UserInputService")
+    handle = handle or frame
     local dragging, dragInput, startPos, dragStart
 
+    local function update(input)
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+
     handle.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
             startPos = frame.Position
+
             input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
             end)
         end
     end)
 
     handle.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement then
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
             dragInput = input
         end
     end)
 
-    UIS.InputChanged:Connect(function(input)
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
         if dragging and input == dragInput then
-            local delta = input.Position - dragStart
-            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            update(input)
         end
     end)
 end
 
--- Create main UI window
 function UILibrary:NewWindow(title)
-    local screenGui = Instance.new("ScreenGui", game.Players.LocalPlayer:WaitForChild("PlayerGui"))
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
-    local mainFrame = Instance.new("Frame", screenGui)
-    mainFrame.Size = UDim2.new(0, 500, 0, 400)
-    mainFrame.Position = UDim2.new(0.5, -250, 0.5, -200)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    addUICorner(mainFrame, 10)
+    local window = Instance.new("Frame")
+    window.Size = UDim2.new(0, 400, 0, 300)
+    window.Position = UDim2.new(0.5, -200, 0.5, -150)
+    window.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    window.BorderSizePixel = 0
+    window.Parent = screenGui
 
-    local titleBar = Instance.new("Frame", mainFrame)
+    addUICorner(window, 10)
+    addUIStroke(window, Color3.fromRGB(80, 80, 80), 2)
+
+    local titleBar = Instance.new("Frame")
     titleBar.Size = UDim2.new(1, 0, 0, 40)
-    titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    titleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    titleBar.BorderSizePixel = 0
+    titleBar.Parent = window
     addUICorner(titleBar, 10)
 
-    local titleLabel = Instance.new("TextLabel", titleBar)
-    titleLabel.Size = UDim2.new(1, -10, 1, 0)
-    titleLabel.Position = UDim2.new(0, 5, 0, 0)
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, 0, 1, 0)
     titleLabel.Text = title
-    titleLabel.TextColor3 = Color3.new(1, 1, 1)
-    titleLabel.TextSize = 18
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.TextSize = 20
     titleLabel.Font = Enum.Font.GothamBold
     titleLabel.BackgroundTransparency = 1
-    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = titleBar
 
-    makeDraggable(mainFrame, titleBar)
+    makeDraggable(window, titleBar)
 
-    return {MainFrame = mainFrame}
+    local sectionContainer = Instance.new("ScrollingFrame")
+    sectionContainer.Size = UDim2.new(1, -10, 1, -50)
+    sectionContainer.Position = UDim2.new(0, 5, 0, 45)
+    sectionContainer.BackgroundTransparency = 1
+    sectionContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
+    sectionContainer.ScrollBarThickness = 6
+    sectionContainer.Parent = window
+
+    local layout = Instance.new("UIListLayout")
+    layout.Padding = UDim.new(0, 10)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Parent = sectionContainer
+
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        sectionContainer.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
+    end)
+
+    return sectionContainer
 end
 
--- Add a button
-function UILibrary:CreateButton(parent, text, callback)
-    local button = Instance.new("TextButton", parent)
-    button.Size = UDim2.new(1, 0, 0, 30)
-    button.Text = text
-    button.TextColor3 = Color3.new(1, 1, 1)
-    button.Font = Enum.Font.Gotham
-    button.TextSize = 14
-    button.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-    addUICorner(button, 8)
+function UILibrary:CreateDropdown(section, dropdownName, options, callback)
+    local dropdown = Instance.new("Frame")
+    dropdown.Size = UDim2.new(1, 0, 0, 40)
+    dropdown.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    dropdown.Parent = section
+    addUICorner(dropdown, 8)
 
-    button.MouseButton1Click:Connect(callback)
-end
+    local dropdownButton = Instance.new("TextButton")
+    dropdownButton.Size = UDim2.new(1, 0, 1, 0)
+    dropdownButton.BackgroundTransparency = 1
+    dropdownButton.Text = dropdownName
+    dropdownButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    dropdownButton.TextSize = 16
+    dropdownButton.Font = Enum.Font.Gotham
+    dropdownButton.Parent = dropdown
 
--- Add a toggle
-function UILibrary:CreateToggle(parent, text, default, callback)
-    local toggle = Instance.new("Frame", parent)
-    toggle.Size = UDim2.new(1, 0, 0, 30)
+    local dropdownArrow = Instance.new("TextLabel")
+    dropdownArrow.Size = UDim2.new(0, 20, 0, 20)
+    dropdownArrow.Position = UDim2.new(1, -25, 0.5, -10)
+    dropdownArrow.BackgroundTransparency = 1
+    dropdownArrow.Text = "▼"
+    dropdownArrow.TextColor3 = Color3.fromRGB(200, 200, 200)
+    dropdownArrow.TextSize = 16
+    dropdownArrow.Font = Enum.Font.Gotham
+    dropdownArrow.Parent = dropdown
 
-    local label = Instance.new("TextLabel", toggle)
-    label.Size = UDim2.new(0.8, 0, 1, 0)
-    label.Text = text
-    label.TextColor3 = Color3.new(1, 1, 1)
-    label.Font = Enum.Font.Gotham
-    label.TextSize = 14
-    label.BackgroundTransparency = 1
-    label.TextXAlignment = Enum.TextXAlignment.Left
+    local dropdownContainer = Instance.new("Frame")
+    dropdownContainer.Size = UDim2.new(1, 0, 0, 0)
+    dropdownContainer.Position = UDim2.new(0, 0, 1, 5)
+    dropdownContainer.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    dropdownContainer.ClipsDescendants = true
+    dropdownContainer.Parent = dropdown
+    addUICorner(dropdownContainer, 8)
+    addUIStroke(dropdownContainer, Color3.fromRGB(90, 90, 90), 1)
 
-    local button = Instance.new("TextButton", toggle)
-    button.Size = UDim2.new(0.2, 0, 1, 0)
-    button.Position = UDim2.new(0.8, 0, 0, 0)
-    button.Text = default and "ON" or "OFF"
-    button.TextColor3 = default and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-    button.Font = Enum.Font.Gotham
-    button.TextSize = 14
-    button.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-    addUICorner(button, 8)
+    local scrollingFrame = Instance.new("ScrollingFrame")
+    scrollingFrame.Size = UDim2.new(1, -10, 1, -10)
+    scrollingFrame.Position = UDim2.new(0, 5, 0, 5)
+    scrollingFrame.BackgroundTransparency = 1
+    scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    scrollingFrame.ScrollBarThickness = 6
+    scrollingFrame.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 80)
+    scrollingFrame.Parent = dropdownContainer
 
-    button.MouseButton1Click:Connect(function()
-        default = not default
-        button.Text = default and "ON" or "OFF"
-        button.TextColor3 = default and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-        callback(default)
+    local layout = Instance.new("UIListLayout")
+    layout.Padding = UDim.new(0, 5)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Parent = scrollingFrame
+
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y)
+    end)
+
+    local clickSound = Instance.new("Sound")
+    clickSound.SoundId = "rbxassetid://876939830"
+    clickSound.Volume = 1.5
+    clickSound.Parent = dropdown
+
+    for _, option in ipairs(options) do
+        local optionButton = Instance.new("TextButton")
+        optionButton.Size = UDim2.new(1, 0, 0, 30)
+        optionButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+        optionButton.Text = option
+        optionButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        optionButton.TextSize = 16
+        optionButton.Font = Enum.Font.Gotham
+        optionButton.Parent = scrollingFrame
+        addUICorner(optionButton, 6)
+
+        optionButton.MouseButton1Click:Connect(function()
+            dropdownButton.Text = option
+            callback(option)
+            clickSound:Play()
+            dropdownContainer:TweenSize(UDim2.new(1, 0, 0, 0), "Out", "Quad", 0.3, true)
+            dropdownArrow.Text = "▼"
+        end)
+    end
+
+    local isOpen = false
+
+    dropdownButton.MouseButton1Click:Connect(function()
+        isOpen = not isOpen
+        if isOpen then
+            dropdownContainer:TweenSize(UDim2.new(1, 0, 0, math.min(150, layout.AbsoluteContentSize.Y)), "Out", "Quad", 0.3, true)
+            dropdownArrow.Text = "▲"
+        else
+            dropdownContainer:TweenSize(UDim2.new(1, 0, 0, 0), "Out", "Quad", 0.3, true)
+            dropdownArrow.Text = "▼"
+        end
     end)
 end
 
