@@ -221,4 +221,27 @@ function CustomUILib:LoadConfiguration(filename)
     end
 end
 
+-- Button Element
+function CustomUILib:CreateButton(parent, config)
+    local buttonConfig = config or {}
+    buttonConfig.Text = buttonConfig.Text or "Button"
+    buttonConfig.Size = buttonConfig.Size or UDim2.new(0, 100, 0, 30)
+    buttonConfig.Position = buttonConfig.Position or UDim2.new(0.5, -50, 0, 10)
+    buttonConfig.Callback = buttonConfig.Callback or function() end
+
+    local button = CreateElement("TextButton", {
+        Text = buttonConfig.Text,
+        Size = buttonConfig.Size,
+        Position = buttonConfig.Position,
+        Parent = parent
+    })
+    ApplyTheme(button, "Text")
+
+    button.MouseButton1Click:Connect(function()
+        buttonConfig.Callback()
+    end)
+
+    return button
+end
+
 return CustomUILib
